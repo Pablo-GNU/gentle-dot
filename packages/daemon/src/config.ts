@@ -16,7 +16,7 @@ export interface DotConfig {
 	uiDir: string;
 	agentCommand: string;
 	agentArgs: string[];
-	/** The assistant's own Gentle Shell home; undefined for a custom agent script. */
+	/** The assistant's own Gentle Shell home; undefined for a custom AGENT_ARGS command. */
 	agentHome: string | undefined;
 	allowedOrigins: string[];
 }
@@ -81,7 +81,8 @@ function parseList(value: string | undefined, name: string): string[] {
 /**
  * The agent is the bundled Gentle Shell by default, run with the assistant's own
  * home so nothing is shared with a Gentle Shell the user may have installed.
- * GENTLE_DOT_AGENT_ARGS marks a custom agent script (tests), which gets no home.
+ * GENTLE_DOT_AGENT_SCRIPT selects a Gentle Shell script while keeping that home.
+ * GENTLE_DOT_AGENT_ARGS takes precedence for custom scripts (tests), which get no home.
  */
 function agentConfig(env: NodeJS.ProcessEnv, dataDir: string) {
 	const custom = parseList(env.GENTLE_DOT_AGENT_ARGS, "GENTLE_DOT_AGENT_ARGS");
@@ -91,6 +92,12 @@ function agentConfig(env: NodeJS.ProcessEnv, dataDir: string) {
 			agentCommand: env.GENTLE_DOT_AGENT_BIN ?? process.execPath,
 			agentArgs: custom,
 			agentHome: undefined,
+		};
+	if (env.GENTLE_DOT_AGENT_SCRIPT)
+		return {
+			agentCommand: env.GENTLE_DOT_AGENT_BIN ?? process.execPath,
+			agentArgs: [env.GENTLE_DOT_AGENT_SCRIPT],
+			agentHome,
 		};
 	if (env.GENTLE_DOT_AGENT_BIN) return { agentCommand: env.GENTLE_DOT_AGENT_BIN, agentArgs: [], agentHome };
 	return { agentCommand: process.execPath, agentArgs: [bundledGentleShell(env)], agentHome };

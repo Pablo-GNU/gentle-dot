@@ -49,6 +49,49 @@ describe("loadConfig", () => {
 		expect(config.agentHome).toBeUndefined();
 	});
 
+	it.each([undefined, "node-fixture"])(
+		"selects a Gentle Shell script while preserving its home (binary: %s)",
+		(binary) => {
+			const dataDir = tempDir();
+			const script = String.raw`C:\Program Files\Gentle Dot\gentle-shell.mjs`;
+			const home = binary ? join(dataDir, "custom-agent-home") : join(dataDir, "agent");
+			expect(
+				loadConfig({
+					GENTLE_DOT_DATA_DIR: dataDir,
+					GENTLE_DOT_AGENT_SCRIPT: script,
+					GENTLE_DOT_AGENT_BIN: binary,
+					GENTLE_DOT_AGENT_HOME: binary ? home : undefined,
+				}),
+			).toMatchObject({ agentCommand: binary ?? process.execPath, agentArgs: [script], agentHome: home });
+		},
+	);
+
+	it("keeps custom argument precedence over a selected script and home", () => {
+		const dataDir = tempDir();
+		const env = {
+			GENTLE_DOT_DATA_DIR: dataDir,
+			GENTLE_DOT_AGENT_BIN: "node-fixture",
+			GENTLE_DOT_AGENT_SCRIPT: "ignored-shell.mjs",
+			GENTLE_DOT_AGENT_HOME: join(dataDir, "ignored-home"),
+		};
+		expect(loadConfig({ ...env, GENTLE_DOT_AGENT_ARGS: '["custom.ts"]' })).toMatchObject({
+			agentCommand: "node-fixture",
+			agentArgs: ["custom.ts"],
+			agentHome: undefined,
+		});
+		expect(() => loadConfig({ ...env, GENTLE_DOT_AGENT_ARGS: '{"a":1}' })).toThrow(
+			"GENTLE_DOT_AGENT_ARGS must be a JSON array of strings",
+		);
+	});
+
+	it("treats an empty script as absent for both the bundled and explicit binary", () => {
+		const dataDir = tempDir();
+		for (const binary of [undefined, "gentle-shell"]) {
+			const env = { GENTLE_DOT_DATA_DIR: dataDir, GENTLE_DOT_AGENT_BIN: binary };
+			expect(loadConfig({ ...env, GENTLE_DOT_AGENT_SCRIPT: "" })).toEqual(loadConfig(env));
+		}
+	});
+
 	it("reads config.json and lets environment variables win", () => {
 		const dataDir = tempDir();
 		const projects = join(dataDir, "projects");

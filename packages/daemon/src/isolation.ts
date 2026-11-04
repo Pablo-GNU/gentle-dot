@@ -2,9 +2,10 @@ import { execFile } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { bundledGentleShell } from "./config.ts";
 import { directAccess, type EngineAccess } from "./engine-access.ts";
+import { environmentPath } from "./environment-path.ts";
 import { writePrivateFile } from "./private-file.ts";
 import { resolveEngramBin, runtimeDir } from "./runtime.ts";
 import { windowsPrivateStorage } from "./windows-private-storage.ts";
@@ -156,7 +157,7 @@ export function isolatedAgentEnv(
 	access(() => ensurePrivateDir(home));
 	const realHome =
 		process.platform === "win32" ? (windowsUserHome(base) ?? homedir()) : base.HOME || homedir();
-	const env: NodeJS.ProcessEnv = {
+	let env: NodeJS.ProcessEnv = {
 		...base,
 		HOME: home,
 		XDG_CONFIG_HOME: join(home, ".config"),
@@ -170,11 +171,7 @@ export function isolatedAgentEnv(
 		env.TMPDIR = tmp;
 		access(() => ensurePrivateDir(tmp));
 	}
-	const bin = bundledBinDir(base);
-	if (bin) {
-		const rest = (base.PATH ?? "").split(delimiter).filter((part) => part && part !== bin);
-		env.PATH = [bin, ...rest].join(delimiter);
-	}
+	env = environmentPath(env, bundledBinDir(base), process.platform);
 	// The user's own Gentle Shell setting is not the assistant's.
 	env.GENTLE_PI_AGENTS = subagentsEnabled(base) ? "1" : "0";
 	if (base.GENTLE_DOT_ENGRAM === "private") {

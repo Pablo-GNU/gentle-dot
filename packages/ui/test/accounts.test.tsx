@@ -147,6 +147,25 @@ describe("AccountsPanel", () => {
 		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "github-copilot", method: "oauth" });
 	});
 
+	it.each(["chatgpt", "  ChAtGpT  "])("finds subscription plan aliases: %s", async (query) => {
+		const send = vi.fn();
+		const dispatch = vi.fn();
+		const auth = mixed();
+		const before = structuredClone(auth.providers);
+		render(<AccountsPanel auth={auth} send={send} dispatch={dispatch} openUrl={vi.fn()} />);
+		await userEvent.click(screen.getByRole("button", { name: /Use a subscription/ }));
+		await userEvent.type(screen.getByRole("searchbox", { name: "Search providers" }), query);
+		const list = screen.getByRole("region", { name: "Use a subscription" });
+		expect(within(list).getByText("OpenAI Codex")).toBeInTheDocument();
+		expect(within(list).queryByText("GitHub Copilot")).toBeNull();
+		await userEvent.click(
+			within(list).getByRole("button", { name: "Sign in with OpenAI (ChatGPT Plus/Pro)" }),
+		);
+		expect(dispatch).toHaveBeenCalledWith({ type: "auth_started", providerId: "openai-codex" });
+		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "openai-codex", method: "oauth" });
+		expect(auth.providers).toEqual(before);
+	});
+
 	it("lists API keys after choosing an API key, with search and a way back", async () => {
 		const send = vi.fn();
 		render(<AccountsPanel auth={mixed()} send={send} dispatch={vi.fn()} openUrl={vi.fn()} />);

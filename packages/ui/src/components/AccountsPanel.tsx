@@ -1,5 +1,6 @@
 import type { AuthEvent, AuthPrompt, AuthProvider } from "@gentle-dot/protocol";
 import { type ReactNode, useState } from "react";
+import { searchProviders } from "../provider-search.ts";
 import type { AuthState, DotAction } from "../store.ts";
 import "../accounts.css";
 import type { Send } from "./types.ts";
@@ -21,9 +22,7 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 		dispatch({ type: "auth_started", providerId: provider.id });
 		send({ type: "auth_login", providerId: provider.id, method });
 	};
-	const providers = (auth.providers ?? []).filter((p) =>
-		p.name.toLowerCase().includes(filter.trim().toLowerCase()),
-	);
+	const providers = searchProviders(auth.providers, filter);
 	const connected = (auth.providers ?? []).filter((p) => p.configured);
 	const providerName = (id: string) => auth.providers?.find((p) => p.id === id)?.name ?? id;
 

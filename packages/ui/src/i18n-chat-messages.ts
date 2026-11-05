@@ -31,6 +31,16 @@ export const chatEn = {
 	chatFullscreen: "Full screen",
 	chatExitFullscreen: "Exit full screen",
 	chatMissingToken: "This page needs your access key. Open it from the Gentle Dot menu (Open in browser).",
+	composerMessage: "Message",
+	composerIdlePlaceholder: "Ask me anything…",
+	composerBusyPlaceholder: "Add to what I'm doing…",
+	composerSend: "Send",
+	composerNotSent: "Not sent",
+	composerSendFailed: "Not connected, so the message was not sent. It is kept here to send again.",
+	composerAttach: "Attach files",
+	composerFiles: "Files to send",
+	composerUploading: "Uploading",
+	composerRemove: "Remove",
 } as const;
 
 export const chatEs = {
@@ -66,4 +76,15 @@ export const chatEs = {
 	chatExitFullscreen: "Salir de pantalla completa",
 	chatMissingToken:
 		"Esta página necesita tu clave de acceso. Ábrela desde el menú de Gentle Dot (Abrir en el navegador).",
+	composerMessage: "Mensaje",
+	composerIdlePlaceholder: "Pregunta lo que quieras…",
+	composerBusyPlaceholder: "Añade algo a lo que estoy haciendo…",
+	composerSend: "Enviar",
+	composerNotSent: "No enviado",
+	composerSendFailed:
+		"No hay conexión, por lo que el mensaje no se ha enviado. Se conserva aquí para volver a enviarlo.",
+	composerAttach: "Adjuntar archivos",
+	composerFiles: "Archivos para enviar",
+	composerUploading: "Subiendo",
+	composerRemove: "Quitar",
 } satisfies Record<keyof typeof chatEn, string>;

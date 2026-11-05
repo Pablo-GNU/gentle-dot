@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "../i18n.tsx";
+import type { UiLocale } from "../i18n-messages.ts";
 import {
 	formatShortcut,
 	isMac,
@@ -25,6 +27,7 @@ function reasonOf(error: unknown): string {
 
 /** The desktop panel's settings (S33.1); for now, the shortcut that opens the panel. */
 export function SettingsPanel({ close }: { close: () => void }) {
+	const { locale, setLocale, t } = useLocale();
 	const [language, setLanguage] = useState(() => voiceLanguage() ?? "");
 	const mac = isMac();
 	const show = (accelerator: string) => formatShortcut(accelerator, mac);
@@ -81,13 +84,25 @@ export function SettingsPanel({ close }: { close: () => void }) {
 
 	const applying = status.kind === "applying";
 	return (
-		<section className="accounts settings" aria-label="Settings">
+		<section className="accounts settings" aria-label={t("settings")}>
 			<header className="accounts-header">
-				<h2>Settings</h2>
-				<button type="button" className="icon" aria-label="Close settings" onClick={close}>
+				<h2>{t("settings")}</h2>
+				<button type="button" className="icon" aria-label={t("closeSettings")} onClick={close}>
 					×
 				</button>
 			</header>
+
+			<section className="provider-section" aria-labelledby="settings-interface-language">
+				<h3 id="settings-interface-language">{t("interfaceLanguage")}</h3>
+				<select
+					aria-label={t("interfaceLanguage")}
+					value={locale}
+					onChange={(event) => setLocale(event.target.value as UiLocale)}
+				>
+					<option value="en">English</option>
+					<option value="es">Español</option>
+				</select>
+			</section>
 
 			<section className="provider-section" aria-labelledby="settings-shortcut">
 				<h3 id="settings-shortcut">Keyboard shortcut</h3>

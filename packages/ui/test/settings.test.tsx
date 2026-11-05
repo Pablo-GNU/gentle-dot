@@ -202,7 +202,7 @@ describe("interface language (F2a)", () => {
 	it("restores Spanish on App mount and follows another window's preference", async () => {
 		localStorage.setItem("gentle-dot-ui-language", "es");
 		await renderApp("?surface=panel");
-		await userEvent.click(await screen.findByRole("button", { name: "Settings" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Ajustes" }));
 		expect(await screen.findByRole("heading", { name: "Ajustes", level: 2 })).toBeInTheDocument();
 		act(() => {
 			window.dispatchEvent(

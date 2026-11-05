@@ -16,6 +16,7 @@ import {
 	startDragging,
 	togglePanel,
 } from "./desktop.ts";
+import { LocaleProvider } from "./i18n.tsx";
 import { createUploader } from "./uploads.ts";
 import { useComputerAvailable, useComputerState } from "./useComputer.ts";
 import { useDot } from "./useDot.ts";
@@ -57,7 +58,9 @@ function isFullscreenShortcut(event: KeyboardEvent): boolean {
 /** The desktop's glow overlay (S28) is its own surface: it never connects to the assistant. */
 export function App() {
 	const surface = currentSurface();
-	return surface === "glow" ? <GlowSurface /> : <Assistant surface={surface} />;
+	return (
+		<LocaleProvider>{surface === "glow" ? <GlowSurface /> : <Assistant surface={surface} />}</LocaleProvider>
+	);
 }
 
 function Assistant({ surface }: { surface: Surface }) {

@@ -57,6 +57,7 @@ async function startRecording() {
 }
 
 beforeEach(() => {
+	localStorage.removeItem("gentle-dot-ui-language");
 	h.tauri = true;
 	h.shortcut = "Alt+Space";
 	h.setResult = undefined;
@@ -84,6 +85,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	window.history.replaceState(null, "", "/");
 	window.sessionStorage.clear();
+	localStorage.removeItem("gentle-dot-ui-language");
 });
 
 describe("showing a shortcut", () => {
@@ -174,6 +176,45 @@ describe("the Settings screen (S33.1)", () => {
 		h.shortcut = "Shift+Super+K";
 		await openSettings();
 		expect(await screen.findByText("Shift+Super+K")).toBeInTheDocument();
+	});
+});
+
+describe("interface language (F2a)", () => {
+	it("switches mounted Settings labels without changing speech or backend settings", async () => {
+		await openSettings();
+		const picker = screen.getByRole("combobox", { name: "Interface language" });
+		expect(picker).toHaveValue("en");
+		const voice = screen.getByRole("combobox", { name: "Voice language" });
+		const speechBefore = localStorage.getItem("gentle-dot-voice-language");
+		const commandsBefore = h.invoke.mock.calls.length;
+		await userEvent.selectOptions(picker, "es");
+		expect(screen.getByRole("heading", { name: "Ajustes", level: 2 })).toBeInTheDocument();
+		expect(screen.getByRole("region", { name: "Ajustes" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Idioma de la interfaz" })).toHaveValue("es");
+		expect(localStorage.getItem("gentle-dot-ui-language")).toBe("es");
+		expect(localStorage.getItem("gentle-dot-voice-language")).toBe(speechBefore);
+		expect(voice).toHaveValue("");
+		expect(h.invoke.mock.calls).toHaveLength(commandsBefore);
+		await userEvent.selectOptions(picker, "en");
+		expect(screen.getByRole("heading", { name: "Settings", level: 2 })).toBeInTheDocument();
+	});
+
+	it("restores Spanish on App mount and follows another window's preference", async () => {
+		localStorage.setItem("gentle-dot-ui-language", "es");
+		await renderApp("?surface=panel");
+		await userEvent.click(await screen.findByRole("button", { name: "Settings" }));
+		expect(await screen.findByRole("heading", { name: "Ajustes", level: 2 })).toBeInTheDocument();
+		act(() => {
+			window.dispatchEvent(
+				new StorageEvent("storage", {
+					key: "gentle-dot-ui-language",
+					newValue: "en",
+					storageArea: localStorage,
+				}),
+			);
+		});
+		expect(screen.getByRole("combobox", { name: "Interface language" })).toHaveValue("en");
+		expect(screen.getByRole("heading", { name: "Settings", level: 2 })).toBeInTheDocument();
 	});
 });
 

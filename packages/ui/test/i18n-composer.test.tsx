@@ -46,12 +46,25 @@ const labels = {
 		failed: "Not sent",
 		busy: "Add to what I'm doing…",
 		idle: "Ask me anything…",
+		talk: "Talk",
+		review: "Stop and review",
+		direct: "Stop and send",
+		listening: "Listening…",
+		option: "Send when I stop",
+		cancel: "Cancel recording",
+		cancelTitle: "Cancel (Esc)",
+		timer: "Recording time",
+		meter: "Microphone level",
+		status: "Voice",
+		transcribing: "Transcribing…",
+		tip: "Tap to talk, tap again to review before sending",
+		directTip: "Tap to talk, tap again to send",
 		failure: "Not connected, so the message was not sent. It is kept here to send again.",
 	},
 	es: {
 		message: "Mensaje",
 		send: "Enviar",
-		stop: "Stop",
+		stop: "Detener",
 		attach: "Adjuntar archivos",
 		files: "Archivos para enviar",
 		remove: "Quitar",
@@ -59,6 +72,19 @@ const labels = {
 		failed: "No enviado",
 		busy: "Añade algo a lo que estoy haciendo…",
 		idle: "Pregunta lo que quieras…",
+		talk: "Hablar",
+		review: "Detener y revisar",
+		direct: "Detener y enviar",
+		listening: "Escuchando…",
+		option: "Enviar al detener",
+		cancel: "Cancelar grabación",
+		cancelTitle: "Cancelar (Esc)",
+		timer: "Tiempo de grabación",
+		meter: "Nivel del micrófono",
+		status: "Voz",
+		transcribing: "Transcribiendo…",
+		tip: "Pulsa para hablar y vuelve a pulsar para revisar antes de enviar",
+		directTip: "Pulsa para hablar y vuelve a pulsar para enviar",
 		failure:
 			"No hay conexión, por lo que el mensaje no se ha enviado. Se conserva aquí para volver a enviarlo.",
 	},
@@ -195,6 +221,62 @@ for (const locale of ["es", "en"] as const) {
 			expect(await screen.findByRole("alert")).toHaveTextContent("Backend English error: /upload synthetic");
 			expect(upload).toHaveBeenCalledTimes(2);
 			expect(send).toHaveBeenCalledTimes(2);
+		});
+
+		it("localizes voice controls but preserves callback modes, partials, notes and reasons", async () => {
+			const send = vi.fn();
+			const v = voice();
+			const view = render(
+				<LocaleProvider>
+					<Composer busy={false} disabled={false} send={send} voice={v} />
+				</LocaleProvider>,
+			);
+			expect(screen.getByRole("button", { name: l.talk })).toHaveAttribute("title", l.tip);
+			await userEvent.click(screen.getByRole("button", { name: l.talk }));
+			expect(v.start).toHaveBeenCalledTimes(1);
+			const update = (overrides: Partial<VoiceControls>, busy = false, disabled = false) =>
+				view.rerender(
+					<LocaleProvider>
+						<Composer busy={busy} disabled={disabled} send={send} voice={{ ...v, ...overrides }} />
+					</LocaleProvider>,
+				);
+			update({ phase: "recording" });
+			expect(screen.queryByRole("textbox")).toBeNull();
+			expect(screen.queryByRole("button", { name: l.send })).toBeNull();
+			expect(screen.getByRole("timer", { name: l.timer })).toHaveTextContent("1:05");
+			expect(screen.getByRole("meter", { name: l.meter })).toHaveAttribute("value", "0.4");
+			expect(screen.getByText(l.listening)).toBeInTheDocument();
+			expect(screen.getByRole("switch", { name: l.option })).toHaveAttribute("aria-checked", "false");
+			await userEvent.click(screen.getByRole("switch", { name: l.option }));
+			expect(v.setSendOnStop).toHaveBeenCalledExactlyOnceWith(true);
+			await userEvent.click(screen.getByRole("button", { name: l.review }));
+			expect(v.stop).toHaveBeenCalledTimes(1);
+			expect(screen.getByRole("button", { name: l.cancel })).toHaveAttribute("title", l.cancelTitle);
+			await userEvent.click(screen.getByRole("button", { name: l.cancel }));
+			expect(v.cancel).toHaveBeenCalledTimes(1);
+			update({ phase: "recording", sendOnStop: true, partial: "English dictated data" });
+			expect(screen.getByText("English dictated data")).toBeInTheDocument();
+			expect(screen.queryByText(l.listening)).toBeNull();
+			expect(screen.getByRole("button", { name: l.direct })).toHaveAttribute("title", l.directTip);
+			await userEvent.click(screen.getByRole("button", { name: l.direct }));
+			expect(v.stop).toHaveBeenCalledTimes(2);
+			await userEvent.click(screen.getByRole("switch", { name: l.option }));
+			expect(v.setSendOnStop).toHaveBeenLastCalledWith(false);
+			update({ phase: "transcribing", note: "English hook note" });
+			expect(screen.getByRole("status", { name: l.status })).toHaveTextContent(l.transcribing);
+			expect(screen.getByRole("button", { name: l.talk })).toBeDisabled();
+			update({ note: "English hook note", mic: { available: false, reason: "English mic reason" } });
+			expect(screen.getByRole("status", { name: l.status })).toHaveTextContent("English hook note");
+			expect(screen.getByRole("button", { name: l.talk })).toHaveAttribute("title", "English mic reason");
+			expect(screen.getByRole("button", { name: l.talk })).toBeDisabled();
+			update({ speaking: true });
+			await userEvent.click(screen.getByRole("button", { name: l.stop }));
+			expect(v.stopSpeaking).toHaveBeenCalledTimes(1);
+			expect(send).not.toHaveBeenCalled();
+			update({}, false, true);
+			expect(screen.getByRole("textbox")).toBeDisabled();
+			expect(screen.getByRole("button", { name: l.talk })).toBeDisabled();
+			expect(screen.getByRole("button", { name: l.send })).toBeDisabled();
 		});
 	});
 }

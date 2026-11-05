@@ -13,7 +13,7 @@ import { createServer } from "node:net";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { tempDir, waitFor } from "./helpers.ts";
+import { fixtureNodeArgs, fixtureNodeEnv, tempDir, waitFor } from "./helpers.ts";
 
 const CLI = fileURLToPath(new URL("../src/cli.ts", import.meta.url));
 const enabled = process.env.GENTLE_DOT_ISOLATION_PROBE === "1";
@@ -106,19 +106,22 @@ describe.skipIf(!enabled)("@real-agent isolation probe", () => {
 			.trim();
 		seed(home);
 		const before = hashTree(home);
-		const child = spawn(process.execPath, [CLI], {
-			env: {
-				PATH: process.env.PATH,
-				HOME: home,
-				XDG_CONFIG_HOME: join(home, ".config"),
-				XDG_DATA_HOME: join(home, ".local", "share"),
-				XDG_CACHE_HOME: join(home, ".cache"),
-				XDG_STATE_HOME: join(home, ".local", "state"),
-				GENTLE_DOT_DATA_DIR: dataDir,
-				GENTLE_DOT_PORT: "0",
-				GENTLE_DOT_ENGRAM_DATA_DIR: globalData,
-				ENGRAM_PORT: engramPort,
-			},
+		const child = spawn(process.execPath, fixtureNodeArgs(CLI), {
+			env: fixtureNodeEnv(
+				{
+					PATH: process.env.PATH,
+					HOME: home,
+					XDG_CONFIG_HOME: join(home, ".config"),
+					XDG_DATA_HOME: join(home, ".local", "share"),
+					XDG_CACHE_HOME: join(home, ".cache"),
+					XDG_STATE_HOME: join(home, ".local", "state"),
+					GENTLE_DOT_DATA_DIR: dataDir,
+					GENTLE_DOT_PORT: "0",
+					GENTLE_DOT_ENGRAM_DATA_DIR: globalData,
+					ENGRAM_PORT: engramPort,
+				},
+				home,
+			),
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		const output = collect(child);

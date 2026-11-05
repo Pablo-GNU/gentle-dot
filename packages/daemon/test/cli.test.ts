@@ -4,21 +4,21 @@ import { createServer, type Socket, connect as unixConnect } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { FAKE_AGENT, tempDir, waitFor } from "./helpers.ts";
+import { FAKE_AGENT, fixtureNodeArgs, fixtureNodeEnv, tempDir, waitFor } from "./helpers.ts";
 
 const CLI = fileURLToPath(new URL("../src/cli.ts", import.meta.url));
 
 describe("gentle-dot command", () => {
 	it("keeps the access key out of redirected output, such as a log file", async () => {
 		const dataDir = join(tempDir(), "data");
-		const child = spawn(process.execPath, [CLI], {
-			env: {
+		const child = spawn(process.execPath, fixtureNodeArgs(CLI), {
+			env: fixtureNodeEnv({
 				...process.env,
 				GENTLE_DOT_DATA_DIR: dataDir,
 				GENTLE_DOT_PORT: "0",
 				GENTLE_DOT_AGENT_BIN: process.execPath,
 				GENTLE_DOT_AGENT_ARGS: JSON.stringify([FAKE_AGENT]),
-			},
+			}),
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let output = "";
@@ -42,15 +42,15 @@ describe("gentle-dot command", () => {
 		"refuses server mode it cannot keep: GENTLE_DOT_VPS as a user that is not root (S25.8)",
 		async () => {
 			const dataDir = join(tempDir(), "data");
-			const child = spawn(process.execPath, [CLI], {
-				env: {
+			const child = spawn(process.execPath, fixtureNodeArgs(CLI), {
+				env: fixtureNodeEnv({
 					...process.env,
 					GENTLE_DOT_VPS: "1",
 					GENTLE_DOT_DATA_DIR: dataDir,
 					GENTLE_DOT_PORT: "0",
 					GENTLE_DOT_AGENT_BIN: process.execPath,
 					GENTLE_DOT_AGENT_ARGS: JSON.stringify([FAKE_AGENT]),
-				},
+				}),
 				stdio: ["ignore", "pipe", "pipe"],
 			});
 			let output = "";
@@ -72,14 +72,14 @@ describe("gentle-dot command", () => {
 	it("a daemon launched with the app's channel exits when the app goes (S35.2, #22)", async () => {
 		const dataDir = join(tempDir(), "data");
 		const { app, daemon } = await socketPair();
-		const child = spawn(process.execPath, [CLI], {
-			env: {
+		const child = spawn(process.execPath, fixtureNodeArgs(CLI), {
+			env: fixtureNodeEnv({
 				...process.env,
 				GENTLE_DOT_DATA_DIR: dataDir,
 				GENTLE_DOT_PORT: "0",
 				GENTLE_DOT_AGENT_BIN: process.execPath,
 				GENTLE_DOT_AGENT_ARGS: JSON.stringify([FAKE_AGENT]),
-			},
+			}),
 			stdio: ["ignore", "pipe", "pipe", daemon],
 		});
 		daemon.destroy();

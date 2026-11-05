@@ -16,7 +16,7 @@ import {
 	startDragging,
 	togglePanel,
 } from "./desktop.ts";
-import { LocaleProvider } from "./i18n.tsx";
+import { LocaleProvider, useLocale } from "./i18n.tsx";
 import { createUploader } from "./uploads.ts";
 import { useComputerAvailable, useComputerState } from "./useComputer.ts";
 import { useDot } from "./useDot.ts";
@@ -64,6 +64,7 @@ export function App() {
 }
 
 function Assistant({ surface }: { surface: Surface }) {
+	const { t } = useLocale();
 	const [info, setInfo] = useState<ConnectionInfo | undefined>(undefined);
 	const [missingToken, setMissingToken] = useState(false);
 	/** Why the desktop app could not reach its assistant, in the app's own words (S35.2). */
@@ -196,8 +197,7 @@ function Assistant({ surface }: { surface: Surface }) {
 		return (
 			<div className="chat chat-web">
 				<div className="status" role="status">
-					{unreachable ??
-						"This page needs your access key. Open it from the Gentle Dot menu (Open in browser)."}
+					{unreachable ?? t("chatMissingToken")}
 				</div>
 			</div>
 		);

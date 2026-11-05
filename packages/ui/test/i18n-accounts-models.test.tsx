@@ -1,9 +1,11 @@
+import { THINKING_LEVELS } from "@gentle-dot/protocol";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountsPanel, FlowEvent, FlowPrompt } from "../src/components/AccountsPanel.tsx";
+import { ModelPicker } from "../src/components/ModelPicker.tsx";
 import { LocaleProvider, UI_LANGUAGE_KEY } from "../src/i18n.tsx";
-import type { AuthState } from "../src/store.ts";
+import type { AuthState, ModelsState } from "../src/store.ts";
 
 const providers: AuthState["providers"] = [
 	{
@@ -40,6 +42,216 @@ beforeEach(() => {
 	localStorage.setItem(UI_LANGUAGE_KEY, "es");
 });
 afterEach(() => localStorage.clear());
+
+const modelState: ModelsState = {
+	current: { provider: "provider-id", id: "model-id", name: "Model Original", thinking: "medium" },
+	groups: [
+		{
+			provider: "provider-id",
+			name: "Provider Original",
+			models: [
+				{
+					provider: "provider-id",
+					id: "model-id",
+					name: "Model Original",
+					images: true,
+					thinkingLevels: [...THINKING_LEVELS],
+				},
+				{
+					provider: "other-id",
+					id: "other-model",
+					name: "Other Original",
+					images: false,
+					thinkingLevels: ["medium"],
+				},
+				{ provider: "plain-id", id: "plain-model", name: "Plain Original", images: false },
+			],
+		},
+	],
+	profiles: [{ name: "Profile Original", model: "provider-id/model-id" }],
+	activeProfile: "Profile Original",
+};
+
+function picker(models: ModelsState = modelState) {
+	const send = vi.fn();
+	const dispatch = vi.fn();
+	const view = render(
+		<LocaleProvider>
+			<ModelPicker models={models} send={send} dispatch={dispatch} />
+		</LocaleProvider>,
+	);
+	return { ...view, send, dispatch };
+}
+
+const modelLabels = {
+	es: {
+		chip: "Modelo: Model Original",
+		choose: "Elegir un modelo",
+		search: "Buscar modelos",
+		list: "Modelos",
+		profiles: "Perfiles",
+		thinking: "Razonamiento",
+		inUse: "En uso",
+	},
+	en: {
+		chip: "Model: Model Original",
+		choose: "Choose a model",
+		search: "Search models",
+		list: "Models",
+		profiles: "Profiles",
+		thinking: "Thinking",
+		inUse: "In use",
+	},
+};
+
+describe.each(["es", "en"] as const)("ModelPicker %s display and unchanged protocol boundaries", (locale) => {
+	beforeEach(() => localStorage.setItem(UI_LANGUAGE_KEY, locale));
+
+	it("preserves displayed provider/model/profile data and exact model, profile and thinking messages", async () => {
+		const labels = modelLabels[locale];
+		const snapshot = JSON.stringify(modelState);
+		const { send, dispatch } = picker();
+		const chip = screen.getByRole("button", { name: labels.chip });
+		expect(chip).toHaveAttribute("title", locale === "es" ? "Cambiar el modelo" : "Change the model");
+		await userEvent.click(chip);
+		const dialog = screen.getByRole("dialog", { name: labels.choose });
+		const search = within(dialog).getByRole("searchbox", { name: labels.search });
+		expect(search).toHaveAttribute("placeholder", labels.search);
+		expect(search).toHaveFocus();
+		const list = screen.getByRole("listbox", { name: labels.list });
+		expect(
+			within(list)
+				.getAllByRole("group")
+				.map((g) => g.getAttribute("aria-label")),
+		).toEqual(["Provider Original", labels.profiles]);
+		expect(
+			within(list)
+				.getAllByRole("option")
+				.map((o) => o.textContent),
+		).toEqual([
+			`Model Original${labels.inUse}`,
+			"Other Original",
+			"Plain Original",
+			`Profile Originalprovider-id/model-id${labels.inUse}`,
+		]);
+		const thinking = screen.getByRole("combobox", { name: labels.thinking });
+		expect(
+			within(thinking)
+				.getAllByRole("option")
+				.map((o) => [o.getAttribute("value"), o.textContent]),
+		).toEqual(
+			THINKING_LEVELS.map((level, i) => [
+				level,
+				locale === "es" ? ["Desactivado", "Mínimo", "Bajo", "Medio", "Alto", "Muy alto", "Máximo"][i] : level,
+			]),
+		);
+		for (const level of THINKING_LEVELS) await userEvent.selectOptions(thinking, level);
+		await userEvent.type(search, "  other-MODEL  ");
+		expect(search).toHaveValue("  other-MODEL  ");
+		expect(within(list).getAllByRole("option")).toHaveLength(1);
+		await userEvent.keyboard("{Enter}");
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(chip).toHaveFocus();
+		await userEvent.click(chip);
+		expect(screen.getByRole("searchbox")).toHaveValue("");
+		await userEvent.click(screen.getByRole("option", { name: "Plain Original" }));
+		await userEvent.click(chip);
+		await userEvent.click(screen.getByRole("option", { name: /^Profile Original/ }));
+		expect(send.mock.calls).toEqual([
+			[{ type: "models_list" }],
+			...THINKING_LEVELS.map((thinking) => [
+				{ type: "model_set", provider: "provider-id", id: "model-id", thinking },
+			]),
+			[{ type: "model_set", provider: "other-id", id: "other-model", thinking: "medium" }],
+			[{ type: "models_list" }],
+			[{ type: "model_set", provider: "plain-id", id: "plain-model" }],
+			[{ type: "models_list" }],
+			[{ type: "profile_apply", name: "Profile Original" }],
+		]);
+		expect(dispatch.mock.calls).toEqual(Array.from({ length: 3 }, () => [{ type: "models_opened" }]));
+		expect(JSON.stringify(modelState)).toBe(snapshot);
+	});
+
+	it("keeps deferred model and backend error text intact while translating their surrounding chrome", async () => {
+		const labels = modelLabels[locale];
+		const state: ModelsState = {
+			...modelState,
+			next: { provider: "next-id", id: "next-model", name: "Next Original" },
+			error: "Backend error Original",
+		};
+		const { send, dispatch } = picker(state);
+		await userEvent.click(
+			screen.getByRole("button", {
+				name: locale === "es" ? "Modelo: Next Original" : "Model: Next Original",
+			}),
+		);
+		expect(
+			screen.getByText(
+				locale === "es"
+					? "Next Original se usará a partir de tu próximo mensaje."
+					: "Next Original is used from your next message.",
+			),
+		).toBeInTheDocument();
+		expect(screen.getByRole("alert")).toHaveTextContent("Backend error Original");
+		await userEvent.type(screen.getByRole("searchbox", { name: labels.search }), "No-Match Original");
+		expect(
+			screen.getByText(locale === "es" ? "No hay modelos que coincidan." : "No models match."),
+		).toBeInTheDocument();
+		await userEvent.keyboard("{ArrowDown}{ArrowUp}{Enter}");
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		await userEvent.keyboard("{Escape}");
+		expect(send.mock.calls).toEqual([[{ type: "models_list" }]]);
+		expect(dispatch.mock.calls).toEqual([[{ type: "models_opened" }]]);
+	});
+
+	it("preserves literal replacement tokens and explicitly empty model names", async () => {
+		const name = "$& {model} Original";
+		const state: ModelsState = { ...modelState, next: { provider: "next-id", id: "next-model", name } };
+		const { send, dispatch, rerender } = picker(state);
+		await userEvent.click(
+			screen.getByRole("button", { name: `${locale === "es" ? "Modelo" : "Model"}: ${name}` }),
+		);
+		expect(
+			screen.getByText(
+				locale === "es"
+					? `${name} se usará a partir de tu próximo mensaje.`
+					: `${name} is used from your next message.`,
+			),
+		).toBeInTheDocument();
+		rerender(
+			<LocaleProvider>
+				<ModelPicker
+					models={{ ...state, next: { provider: "next-id", id: "next-model", name: "" } }}
+					send={send}
+					dispatch={dispatch}
+					disabled
+				/>
+			</LocaleProvider>,
+		);
+		const chip = screen.getByRole("button", { name: locale === "es" ? "Modelo:" : "Model:" });
+		expect(chip).toBeDisabled();
+		expect(chip.querySelector(".model-chip-name")).toBeEmptyDOMElement();
+		expect(send.mock.calls).toEqual([[{ type: "models_list" }]]);
+		expect(dispatch.mock.calls).toEqual([[{ type: "models_opened" }]]);
+	});
+
+	it("translates unchosen and loading states without inventing choices or thinking controls", async () => {
+		const { send, dispatch } = picker({ profiles: [] });
+		const chip = screen.getByRole("button", {
+			name: locale === "es" ? "Modelo: sin elegir" : "Model: not chosen",
+		});
+		expect(chip).toHaveTextContent(modelLabels[locale].choose);
+		await userEvent.click(chip);
+		expect(screen.getByText(locale === "es" ? "Cargando modelos…" : "Loading models…")).toBeInTheDocument();
+		expect(screen.queryByRole("combobox")).toBeNull();
+		expect(
+			screen.queryByText(locale === "es" ? "No hay modelos que coincidan." : "No models match."),
+		).toBeNull();
+		await userEvent.keyboard("{Enter}");
+		expect(send.mock.calls).toEqual([[{ type: "models_list" }]]);
+		expect(dispatch.mock.calls).toEqual([[{ type: "models_opened" }]]);
+	});
+});
 
 describe("Spanish accounts chrome without translating account data", () => {
 	it("labels the initial panel, connected accounts, close and sign-out actions", async () => {

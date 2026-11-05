@@ -21,6 +21,15 @@ export const DAEMON_CLAIM_FILE = ".gentle-dot-daemon.lock";
 export const DAEMON_CLAIM_GUARD = `${DAEMON_CLAIM_FILE}.guard`;
 export const DAEMON_CLAIM_MARK = "gentle-dot-daemon";
 
+/** Retryable only at startup admission; neither kind authorizes guard removal. */
+export class DaemonClaimContention extends Error {
+	readonly kind: "live-owner" | "active-guard";
+	constructor(kind: "live-owner" | "active-guard", message: string, options?: ErrorOptions) {
+		super(message, options);
+		this.kind = kind;
+	}
+}
+
 export interface ClaimDirectory {
 	/** An authorized private coordination directory, not an arbitrary shared SDK home. */
 	path: string;
@@ -174,7 +183,8 @@ function guarded(io: ClaimIo, dir: string, fn: () => void): void {
 		io.guard(guard);
 	} catch (error) {
 		if (code(error) !== "EEXIST") throw error;
-		throw new Error(
+		throw new DaemonClaimContention(
+			"active-guard",
 			`Claim guard ${guard} already exists; stop all daemons and inspect it before manual recovery.`,
 			{ cause: error },
 		);
@@ -253,7 +263,8 @@ export function claimDaemonDirs(
 							/* Uncertain means retained. */
 						}
 						if (live)
-							throw new Error(
+							throw new DaemonClaimContention(
+								"live-owner",
 								`another Gentle Dot assistant is already running on this data folder (pid ${other} holds ${file})`,
 							);
 						io.remove(file);

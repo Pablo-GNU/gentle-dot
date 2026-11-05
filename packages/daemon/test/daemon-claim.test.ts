@@ -8,6 +8,7 @@ import {
 	DAEMON_CLAIM_FILE,
 	DAEMON_CLAIM_GUARD,
 	DAEMON_CLAIM_MARK,
+	DaemonClaimContention,
 } from "../src/daemon-claim.ts";
 import type { EngineAccess } from "../src/engine-access.ts";
 import { windowsPrivateStorage } from "../src/windows-private-storage.ts";
@@ -112,6 +113,22 @@ describe("guarded daemon directory claims", () => {
 		expect(f.calls.filter(([op]) => ["create", "remove"].includes(op))).toEqual([]);
 	});
 
+	it("types live contention without changing its exact prior diagnostic", () => {
+		const f = fixture();
+		f.files.set(file, record(303));
+		let failure: unknown;
+		try {
+			claimDaemonDirs([{ path: data }], f.options);
+		} catch (error) {
+			failure = error;
+		}
+		expect(failure).toBeInstanceOf(DaemonClaimContention);
+		expect((failure as DaemonClaimContention).kind).toBe("live-owner");
+		expect((failure as Error).message).toBe(
+			`another Gentle Dot assistant is already running on this data folder (pid 303 holds ${file})`,
+		);
+	});
+
 	it("recovers only a well-formed, proven-dead owner while holding guard", () => {
 		const f = fixture();
 		f.files.set(file, `${DAEMON_CLAIM_MARK} 303\n`);
@@ -143,7 +160,17 @@ describe("guarded daemon directory claims", () => {
 		const f = fixture();
 		f.guards.add(guard);
 		const before = f.snapshot();
-		expect(() => claimDaemonDirs([{ path: data }], f.options)).toThrow(/guard.*manual/i);
+		let failure: unknown;
+		try {
+			claimDaemonDirs([{ path: data }], f.options);
+		} catch (error) {
+			failure = error;
+		}
+		expect(failure).toBeInstanceOf(DaemonClaimContention);
+		expect((failure as DaemonClaimContention).kind).toBe("active-guard");
+		expect((failure as Error).message).toBe(
+			`Claim guard ${guard} already exists; stop all daemons and inspect it before manual recovery.`,
+		);
 		expect(f.snapshot()).toEqual(before);
 		expect(f.calls.map(([op]) => op)).toEqual(["prepare", "guard"]);
 	});

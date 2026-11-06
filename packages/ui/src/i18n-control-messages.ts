@@ -1,4 +1,4 @@
-// Authored answer controls; never prompts, codes or permission rules.
+// Authored answer/PIN controls and explanations; never prompts, codes or permission rules.
 export const controlEn = {
 	answerWaitingApp: "Waiting for your answer in the app",
 	answerNeeded: "Needs your answer",
@@ -10,6 +10,28 @@ export const controlEn = {
 	answerNo: "No",
 	answerSend: "Send answer",
 	answerSkip: "Skip",
+	pinFormat: "Use 6 to 12 digits.",
+	pinMismatch: "The two PINs are different.",
+	pinHelp:
+		"Choose a PIN of 6 to 12 digits. You will need it to change connectors and to allow actions. The assistant never sees it.",
+	pinLocked: "Too many wrong PINs. Try again later.",
+	pinLabel: "PIN",
+	pinNew: "New PIN",
+	pinRepeat: "Repeat the PIN",
+	pinEnter: "Enter your PIN",
+	pinCreate: "Create a PIN",
+	pinContinue: "Continue",
+	pinCancel: "Cancel",
+	pinMode: "Switch {name} to {mode}?",
+	pinReadWrite: "read and send",
+	pinReadOnly: "read only",
+	pinConnect: "Connect {name}?",
+	pinDisconnect: "Disconnect {name}?",
+	pinRemove: "Remove {name}?",
+	pinDraft: "Add the connector the assistant drafted?",
+	pinImportOne: "Import {count} server?",
+	pinImportMany: "Import {count} servers?",
+	pinChange: "Change your connectors?",
 } as const;
 
 export const controlEs = {
@@ -23,4 +45,26 @@ export const controlEs = {
 	answerNo: "No",
 	answerSend: "Enviar respuesta",
 	answerSkip: "Omitir",
+	pinFormat: "Use entre 6 y 12 dígitos.",
+	pinMismatch: "Los dos PIN no coinciden.",
+	pinHelp:
+		"Elija un PIN de entre 6 y 12 dígitos. Lo necesitará para cambiar conectores y permitir acciones. El asistente nunca lo ve.",
+	pinLocked: "Demasiados PIN incorrectos. Inténtelo más tarde.",
+	pinLabel: "PIN",
+	pinNew: "Nuevo PIN",
+	pinRepeat: "Repita el PIN",
+	pinEnter: "Introduzca su PIN",
+	pinCreate: "Cree un PIN",
+	pinContinue: "Continuar",
+	pinCancel: "Cancelar",
+	pinMode: "¿Cambiar {name} a {mode}?",
+	pinReadWrite: "lectura y envío",
+	pinReadOnly: "solo lectura",
+	pinConnect: "¿Conectar {name}?",
+	pinDisconnect: "¿Desconectar {name}?",
+	pinRemove: "¿Eliminar {name}?",
+	pinDraft: "¿Añadir el conector que preparó el asistente?",
+	pinImportOne: "¿Importar {count} servidor?",
+	pinImportMany: "¿Importar {count} servidores?",
+	pinChange: "¿Cambiar sus conectores?",
 } satisfies Record<keyof typeof controlEn, string>;

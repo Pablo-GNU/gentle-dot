@@ -1,21 +1,25 @@
-# Spanish answer controls
+# Spanish answer and PIN controls
 
-AskCard uses the existing UI locale for authored answer labels, including
-Allow/Deny on PIN approvals. English remains the default, with the original
-wording and DOM structure.
+The UI uses the existing UI locale for authored AskCard controls, PIN field labels,
+help, local validation messages, and the ChatSurface PIN dialog. English remains
+the default, with the original wording and DOM structure.
 
-Question titles, details, options, placeholders and submitted text remain verbatim.
-Request IDs, response values and outgoing message shapes are unchanged. First-use
-PIN approval still sends `pin_set` before `pin_approve`; denial needs no PIN and
-sends `ui_response` with `confirmed: false`.
+Supplied question titles, details, options, placeholders and input remain verbatim.
+Connector names and IDs are inserted verbatim into localized confirmations;
+commands, arguments, PINs, generated prompts and backend errors are not translated.
+`describePinCommand` stays pure, defaults to English and accepts an explicit
+translator as its optional third argument.
 
-PIN fields, help, local validation messages and connector confirmations remain
-in English in this slice; their localization belongs to the dependent PIN unit.
-Password masking, the 6–12-digit rule and mismatch validation are unchanged. The
-locked-PIN notice remains informational; the server enforces the lock.
+The confirmation still names the real action: connect, disconnect, remove,
+change read permissions, add the drafted connector, or import a server count.
+No validation condition, password masking, permission guard, or submit sequence
+changes. The existing locked-PIN notice remains informational in the renderer;
+the server remains responsible for enforcing the lock.
 
-Synthetic renderer coverage checks Spanish answer labels, verbatim question data,
-exact callbacks and PIN action labels with unchanged English fields and errors.
-Existing English component and PIN tests protect the default behavior. These
-checks do not exercise real PIN authentication, SDK calls, native dialogs or
-Windows hardware. Parent-owned integration and browser verification are separate.
+Synthetic renderer tests cover invalid PIN lengths/characters and mismatches
+sending nothing, retained input/storage/state, accepted 6/12-digit boundaries,
+first-use PIN creation order, existing-PIN approval, denial, cancellation,
+verbatim question data and exact outgoing messages. Existing English component,
+PIN and conversation-switch tests provide regression seams. No actual server,
+PIN authentication, native dialog or Windows acceptance is exercised here;
+broader parent-owned browser and integration verification remain separate.

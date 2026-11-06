@@ -397,12 +397,12 @@ export function ChatSurface({
 				<div
 					className="switch-confirm pin-dialog"
 					role="dialog"
-					aria-label={pin.set ? "Enter your PIN" : "Create a PIN"}
+					aria-label={pin.set ? t("pinEnter") : t("pinCreate")}
 				>
-					<p>{describePinCommand(pinPending, state.connectors.list)}</p>
+					<p>{describePinCommand(pinPending, state.connectors.list, t)}</p>
 					<PinForm
 						pin={pin}
-						action="Continue"
+						action={t("pinContinue")}
 						onPin={(value, created) => {
 							if (created) send({ type: "pin_set", pin: value });
 							send({ type: "pin_command", pin: value, command: pinPending });
@@ -420,7 +420,7 @@ export function ChatSurface({
 								});
 							}}
 						>
-							Cancel
+							{t("pinCancel")}
 						</button>
 					</PinForm>
 				</div>

@@ -1,5 +1,6 @@
 import { accountEn, accountEs } from "./i18n-account-messages.ts";
 import { chatEn, chatEs } from "./i18n-chat-messages.ts";
+import { controlEn, controlEs } from "./i18n-control-messages.ts";
 import { messageListEn, messageListEs } from "./i18n-message-list-messages.ts";
 
 export type UiLocale = "en" | "es";
@@ -8,6 +9,7 @@ export type UiLocale = "en" | "es";
 const en = {
 	...chatEn,
 	...accountEn,
+	...controlEn,
 	...messageListEn,
 	settings: "Settings",
 	closeSettings: "Close settings",
@@ -21,6 +23,7 @@ export const messages: Record<UiLocale, Record<MessageKey, string>> = {
 	es: {
 		...chatEs,
 		...accountEs,
+		...controlEs,
 		...messageListEs,
 		settings: "Ajustes",
 		closeSettings: "Cerrar ajustes",
